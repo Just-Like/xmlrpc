@@ -71,6 +71,14 @@ var unmarshalTests = []struct {
 	{map[string]interface{}{}, new(interface{}), "<value><struct></struct></value>"},
 }
 
+var illegalCharacter = []struct {
+	value interface{}
+	ptr   interface{}
+	xml   string
+}{
+	{`<string>[1;44mD[0m</string>`, new(*string), "<string>�[1;44mD�[0m</string>"},
+}
+
 func _time(s string) time.Time {
 	t, err := time.Parse(time.RFC3339, s)
 	if err != nil {
@@ -231,4 +239,15 @@ func decode(charset string, input io.Reader) (io.Reader, error) {
 	}
 
 	return transform.NewReader(input, charmap.Windows1251.NewDecoder()), nil
+}
+
+func Test_unmarshalIllegalCharacter(t *testing.T) {
+	illegalCharacter := `<value><string>[1;44mD[0m</string></value>`
+	var result string
+	fmt.Println(illegalCharacter)
+	err := unmarshal([]byte(illegalCharacter), &result)
+	if err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	fmt.Println(result)
 }

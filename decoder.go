@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -36,7 +37,17 @@ type decoder struct {
 	*xml.Decoder
 }
 
+// replace illegal character code
+// If the data contains illegal character codes like U+001B, the unmarshalling process will fail, so they should be replaced.
+// https://www.w3.org/TR/xml11/#charsets
+func replaceIllegalCharacterCode(data []byte) []byte {
+	compile, _ := regexp.Compile(`[^\x09\x0A\x0D\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]`)
+	data = compile.ReplaceAll(data, []byte("\uFFFD"))
+	return data
+}
+
 func unmarshal(data []byte, v interface{}) (err error) {
+	data = replaceIllegalCharacterCode(data)
 	dec := &decoder{xml.NewDecoder(bytes.NewBuffer(data))}
 
 	if CharsetReader != nil {
